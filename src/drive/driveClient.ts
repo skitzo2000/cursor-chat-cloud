@@ -15,6 +15,15 @@ export class DriveClient {
   }
 
   /**
+   * Escape special characters for Google Drive API query strings
+   * This prevents query injection by escaping both single quotes and backslashes
+   */
+  private escapeQueryValue(value: string): string {
+    // Escape backslashes first, then single quotes
+    return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  }
+
+  /**
    * Initialize Drive client with OAuth2 client
    */
   initialize(auth: OAuth2Client): void {
@@ -91,9 +100,9 @@ export class DriveClient {
     }
 
     try {
-      // Escape single quotes in folder name and parent ID to prevent query injection
-      const escapedFolderName = folderName.replace(/'/g, "\\'");
-      const escapedParentId = parentId.replace(/'/g, "\\'");
+      // Escape special characters to prevent query injection
+      const escapedFolderName = this.escapeQueryValue(folderName);
+      const escapedParentId = this.escapeQueryValue(parentId);
       
       // Search for existing folder
       const response = await this.drive.files.list({
@@ -138,8 +147,8 @@ export class DriveClient {
     }
 
     try {
-      // Escape single quotes to prevent query injection
-      const escapedParentFolderId = parentFolderId.replace(/'/g, "\\'");
+      // Escape special characters to prevent query injection
+      const escapedParentFolderId = this.escapeQueryValue(parentFolderId);
       
       // Search for existing folder
       const response = await this.drive.files.list({
@@ -266,8 +275,8 @@ export class DriveClient {
     }
 
     try {
-      // Escape single quotes to prevent query injection
-      const escapedFolderId = folderId.replace(/'/g, "\\'");
+      // Escape special characters to prevent query injection
+      const escapedFolderId = this.escapeQueryValue(folderId);
       
       const response = await this.drive.files.list({
         q: `'${escapedFolderId}' in parents and trashed=false`,
@@ -332,9 +341,9 @@ export class DriveClient {
     }
 
     try {
-      // Escape single quotes to prevent query injection
-      const escapedFileName = fileName.replace(/'/g, "\\'");
-      const escapedParentFolderId = parentFolderId.replace(/'/g, "\\'");
+      // Escape special characters to prevent query injection
+      const escapedFileName = this.escapeQueryValue(fileName);
+      const escapedParentFolderId = this.escapeQueryValue(parentFolderId);
       
       const response = await this.drive.files.list({
         q: `name='${escapedFileName}' and '${escapedParentFolderId}' in parents and trashed=false`,
