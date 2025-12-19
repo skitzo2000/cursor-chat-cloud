@@ -56,6 +56,11 @@
           ],
           "default": "info",
           "description": "Logging level"
+        },
+        "cursorChatCloud.driveFolderPath": {
+          "type": "string",
+          "default": "/apps/CcCloud",
+          "description": "Path to the Google Drive folder for storing synced data (relative to Drive root)"
         }
       }
     },

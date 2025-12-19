@@ -1,6 +1,7 @@
 import { google, drive_v3 } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { Logger } from '../utils/logger';
+import { Config } from '../utils/config';
 import * as fs from 'fs';
 import { Readable } from 'stream';
 
@@ -30,7 +31,8 @@ export class DriveClient {
   }
 
   /**
-   * Create or find the app folder in Google Drive
+   * Create or find a folder by path in Google Drive
+   * Handles nested paths like /apps/CcCloud
    */
   async ensureAppFolder(): Promise<string> {
     if (!this.drive) {
@@ -38,23 +40,59 @@ export class DriveClient {
     }
 
     try {
+      // Get the configured folder path and normalize it
+      const folderPath = Config.getDriveFolderPath();
+      const pathParts = folderPath.split('/').filter(part => part.length > 0);
+      
+      if (pathParts.length === 0) {
+        throw new Error('Invalid folder path configuration');
+      }
+
+      this.logger.info(`Ensuring folder path: ${folderPath}`);
+
+      // Start from root
+      let parentId = 'root';
+
+      // Create/find each folder in the path
+      for (const folderName of pathParts) {
+        parentId = await this.ensureFolderInParent(folderName, parentId);
+      }
+
+      this.logger.info(`App folder ready at: ${folderPath} (ID: ${parentId})`);
+      return parentId;
+    } catch (error) {
+      this.logger.error('Error ensuring app folder', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create or find a folder within a parent folder
+   */
+  private async ensureFolderInParent(folderName: string, parentId: string): Promise<string> {
+    if (!this.drive) {
+      throw new Error('Drive client not initialized');
+    }
+
+    try {
       // Search for existing folder
       const response = await this.drive.files.list({
-        q: "name='CursorChatCloud' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+        q: `name='${folderName}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
         fields: 'files(id, name)',
         spaces: 'drive'
       });
 
       if (response.data.files && response.data.files.length > 0) {
         const folderId = response.data.files[0].id!;
-        this.logger.info(`Found existing app folder: ${folderId}`);
+        this.logger.debug(`Found existing folder: ${folderName} (${folderId})`);
         return folderId;
       }
 
       // Create folder if it doesn't exist
       const folderMetadata: drive_v3.Schema$File = {
-        name: 'CursorChatCloud',
-        mimeType: 'application/vnd.google-apps.folder'
+        name: folderName,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [parentId]
       };
 
       const folder = await this.drive.files.create({
@@ -63,10 +101,10 @@ export class DriveClient {
       });
 
       const folderId = folder.data.id!;
-      this.logger.info(`Created app folder: ${folderId}`);
+      this.logger.debug(`Created folder: ${folderName} (${folderId})`);
       return folderId;
     } catch (error) {
-      this.logger.error('Error ensuring app folder', error);
+      this.logger.error(`Error ensuring folder ${folderName}`, error);
       throw error;
     }
   }
