@@ -11,8 +11,12 @@ export class GoogleAuth {
   private tokenManager: TokenManager;
   private oauth2Client: OAuth2Client | null = null;
   
-  // OAuth Configuration - IMPORTANT: Replace these with your own credentials
-  // See README.md for instructions on setting up Google Cloud OAuth
+  // OAuth Configuration
+  // IMPORTANT FOR EXTENSION AUTHORS: 
+  // Before publishing this extension, you MUST replace these with your own OAuth credentials
+  // from a Google Cloud Project. See README.md for setup instructions.
+  // These credentials allow users to sign in with their own Gmail/Google accounts.
+  // The CLIENT_ID and CLIENT_SECRET identify YOUR application, not the end user.
   private readonly CLIENT_ID = process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID.apps.googleusercontent.com';
   private readonly CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || 'YOUR_CLIENT_SECRET';
   private readonly REDIRECT_PORT = parseInt(process.env.OAUTH_REDIRECT_PORT || '3000', 10);
@@ -53,7 +57,7 @@ export class GoogleAuth {
     try {
       if (!this.isConfigured()) {
         vscode.window.showErrorMessage(
-          'Google OAuth credentials not configured. Please follow the setup instructions in the README to create your own Google Cloud project and update the credentials in googleAuth.ts.'
+          'This extension requires OAuth credentials to be configured. Please contact the extension author or configure your own Google Cloud Project credentials. See README.md for details.'
         );
         return false;
       }

@@ -20,4 +20,8 @@ export class Config {
   static getLogLevel(): string {
     return vscode.workspace.getConfiguration('cursorChatCloud').get('logLevel', 'info');
   }
+
+  static getDriveFolderPath(): string {
+    return vscode.workspace.getConfiguration('cursorChatCloud').get('driveFolderPath', '/apps/CcCloud');
+  }
 }

@@ -1,6 +1,7 @@
 import { google, drive_v3 } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { Logger } from '../utils/logger';
+import { Config } from '../utils/config';
 import * as fs from 'fs';
 import { Readable } from 'stream';
 
@@ -11,6 +12,15 @@ export class DriveClient {
 
   constructor(logger: Logger) {
     this.logger = logger;
+  }
+
+  /**
+   * Escape special characters for Google Drive API query strings
+   * This prevents query injection by escaping both single quotes and backslashes
+   */
+  private escapeQueryValue(value: string): string {
+    // Escape backslashes first, then single quotes
+    return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   }
 
   /**
@@ -30,7 +40,8 @@ export class DriveClient {
   }
 
   /**
-   * Create or find the app folder in Google Drive
+   * Create or find a folder by path in Google Drive
+   * Handles nested paths like /apps/CcCloud
    */
   async ensureAppFolder(): Promise<string> {
     if (!this.drive) {
@@ -38,23 +49,79 @@ export class DriveClient {
     }
 
     try {
+      // Get the configured folder path and normalize it
+      let folderPath = Config.getDriveFolderPath();
+      
+      // Trim whitespace and validate
+      folderPath = folderPath.trim();
+      if (!folderPath || folderPath.length === 0) {
+        throw new Error('Invalid folder path configuration: path cannot be empty');
+      }
+      
+      // Split and filter out empty segments
+      const pathParts = folderPath.split('/').filter(part => part.trim().length > 0);
+      
+      if (pathParts.length === 0) {
+        throw new Error('Invalid folder path configuration: no valid path segments');
+      }
+
+      // Validate folder names (no special characters that could cause issues)
+      const invalidChars = /[<>:"|?*\\]/;
+      for (const part of pathParts) {
+        if (invalidChars.test(part)) {
+          throw new Error(`Invalid folder name "${part}": contains invalid characters`);
+        }
+      }
+
+      this.logger.info(`Ensuring folder path: ${folderPath}`);
+
+      // Start from root
+      let parentId = 'root';
+
+      // Create/find each folder in the path
+      for (const folderName of pathParts) {
+        parentId = await this.ensureFolderInParent(folderName, parentId);
+      }
+
+      this.logger.info(`App folder ready at: ${folderPath} (ID: ${parentId})`);
+      return parentId;
+    } catch (error) {
+      this.logger.error('Error ensuring app folder', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create or find a folder within a parent folder
+   */
+  private async ensureFolderInParent(folderName: string, parentId: string): Promise<string> {
+    if (!this.drive) {
+      throw new Error('Drive client not initialized');
+    }
+
+    try {
+      // Escape special characters to prevent query injection
+      const escapedFolderName = this.escapeQueryValue(folderName);
+      const escapedParentId = this.escapeQueryValue(parentId);
+      
       // Search for existing folder
       const response = await this.drive.files.list({
-        q: "name='CursorChatCloud' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+        q: `name='${escapedFolderName}' and '${escapedParentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
         fields: 'files(id, name)',
         spaces: 'drive'
       });
 
       if (response.data.files && response.data.files.length > 0) {
         const folderId = response.data.files[0].id!;
-        this.logger.info(`Found existing app folder: ${folderId}`);
+        this.logger.debug(`Found existing folder: ${folderName} (${folderId})`);
         return folderId;
       }
 
       // Create folder if it doesn't exist
       const folderMetadata: drive_v3.Schema$File = {
-        name: 'CursorChatCloud',
-        mimeType: 'application/vnd.google-apps.folder'
+        name: folderName,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [parentId]
       };
 
       const folder = await this.drive.files.create({
@@ -63,10 +130,10 @@ export class DriveClient {
       });
 
       const folderId = folder.data.id!;
-      this.logger.info(`Created app folder: ${folderId}`);
+      this.logger.debug(`Created folder: ${folderName} (${folderId})`);
       return folderId;
     } catch (error) {
-      this.logger.error('Error ensuring app folder', error);
+      this.logger.error(`Error ensuring folder ${folderName}`, error);
       throw error;
     }
   }
@@ -80,9 +147,12 @@ export class DriveClient {
     }
 
     try {
+      // Escape special characters to prevent query injection
+      const escapedParentFolderId = this.escapeQueryValue(parentFolderId);
+      
       // Search for existing folder
       const response = await this.drive.files.list({
-        q: `name='workspaces' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        q: `name='workspaces' and '${escapedParentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
         fields: 'files(id, name)',
         spaces: 'drive'
       });
@@ -205,8 +275,11 @@ export class DriveClient {
     }
 
     try {
+      // Escape special characters to prevent query injection
+      const escapedFolderId = this.escapeQueryValue(folderId);
+      
       const response = await this.drive.files.list({
-        q: `'${folderId}' in parents and trashed=false`,
+        q: `'${escapedFolderId}' in parents and trashed=false`,
         fields: 'files(id, name, modifiedTime, size, mimeType)',
         spaces: 'drive',
         pageSize: 1000
@@ -268,8 +341,12 @@ export class DriveClient {
     }
 
     try {
+      // Escape special characters to prevent query injection
+      const escapedFileName = this.escapeQueryValue(fileName);
+      const escapedParentFolderId = this.escapeQueryValue(parentFolderId);
+      
       const response = await this.drive.files.list({
-        q: `name='${fileName}' and '${parentFolderId}' in parents and trashed=false`,
+        q: `name='${escapedFileName}' and '${escapedParentFolderId}' in parents and trashed=false`,
         fields: 'files(id, name, modifiedTime, size)',
         spaces: 'drive'
       });
