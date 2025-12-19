@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { Logger } from '../utils/logger';
+import { Config } from '../utils/config';
 import { TokenManager, TokenData } from './tokenManager';
 import * as http from 'http';
 import * as url from 'url';
@@ -10,23 +11,109 @@ export class GoogleAuth {
   private logger: Logger;
   private tokenManager: TokenManager;
   private oauth2Client: OAuth2Client | null = null;
-  
-  // OAuth Configuration
-  // IMPORTANT FOR EXTENSION AUTHORS: 
-  // Before publishing this extension, you MUST replace these with your own OAuth credentials
-  // from a Google Cloud Project. See README.md for setup instructions.
-  // These credentials allow users to sign in with their own Gmail/Google accounts.
-  // The CLIENT_ID and CLIENT_SECRET identify YOUR application, not the end user.
-  private readonly CLIENT_ID = process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID.apps.googleusercontent.com';
-  private readonly CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || 'YOUR_CLIENT_SECRET';
-  private readonly REDIRECT_PORT = parseInt(process.env.OAUTH_REDIRECT_PORT || '3000', 10);
-  private readonly REDIRECT_URI = `http://localhost:${this.REDIRECT_PORT}/oauth2callback`;
+  private CLIENT_ID: string = '';
+  private CLIENT_SECRET: string = '';
+  private REDIRECT_PORT: number = 3000;
+  private REDIRECT_URI: string = '';
   private readonly SCOPES = ['https://www.googleapis.com/auth/drive.file'];
   private readonly OAUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
   constructor(tokenManager: TokenManager, logger: Logger) {
     this.tokenManager = tokenManager;
     this.logger = logger;
+    this.loadCredentials();
+  }
+
+  /**
+   * Load OAuth credentials from configuration
+   */
+  private loadCredentials(): void {
+    this.CLIENT_ID = Config.getGoogleClientId();
+    this.CLIENT_SECRET = Config.getGoogleClientSecret();
+    this.REDIRECT_PORT = Config.getOAuthRedirectPort();
+    this.REDIRECT_URI = `http://localhost:${this.REDIRECT_PORT}/oauth2callback`;
+  }
+
+  /**
+   * Check if credentials are configured
+   */
+  private isConfigured(): boolean {
+    this.loadCredentials(); // Reload in case settings changed
+    return this.CLIENT_ID.length > 0 && this.CLIENT_SECRET.length > 0;
+  }
+
+  /**
+   * Prompt user to configure OAuth credentials
+   */
+  private async promptForCredentials(): Promise<boolean> {
+    const setupChoice = await vscode.window.showInformationMessage(
+      'Google OAuth credentials are required to sync with Google Drive. Would you like to set them up now?',
+      'Setup Credentials',
+      'Learn More',
+      'Cancel'
+    );
+
+    if (setupChoice === 'Learn More') {
+      await vscode.env.openExternal(vscode.Uri.parse('https://console.cloud.google.com/'));
+      vscode.window.showInformationMessage(
+        'To use this extension, create a Google Cloud Project, enable the Drive API, and create OAuth credentials. See the extension README for detailed instructions.'
+      );
+      return false;
+    }
+
+    if (setupChoice !== 'Setup Credentials') {
+      return false;
+    }
+
+    // Guide user through setup
+    const clientId = await vscode.window.showInputBox({
+      prompt: 'Enter your Google OAuth Client ID',
+      placeHolder: 'YOUR_CLIENT_ID.apps.googleusercontent.com',
+      ignoreFocusOut: true,
+      validateInput: (value) => {
+        if (!value || value.trim().length === 0) {
+          return 'Client ID is required';
+        }
+        if (!value.includes('.apps.googleusercontent.com')) {
+          return 'Client ID should end with .apps.googleusercontent.com';
+        }
+        return null;
+      }
+    });
+
+    if (!clientId) {
+      return false;
+    }
+
+    const clientSecret = await vscode.window.showInputBox({
+      prompt: 'Enter your Google OAuth Client Secret',
+      placeHolder: 'YOUR_CLIENT_SECRET',
+      password: true,
+      ignoreFocusOut: true,
+      validateInput: (value) => {
+        if (!value || value.trim().length === 0) {
+          return 'Client Secret is required';
+        }
+        return null;
+      }
+    });
+
+    if (!clientSecret) {
+      return false;
+    }
+
+    // Save credentials to settings
+    await Config.setGoogleClientId(clientId.trim());
+    await Config.setGoogleClientSecret(clientSecret.trim());
+
+    // Reload credentials
+    this.loadCredentials();
+
+    vscode.window.showInformationMessage(
+      'OAuth credentials saved successfully! Make sure your OAuth redirect URI is set to: ' + this.REDIRECT_URI
+    );
+
+    return true;
   }
 
   /**
@@ -43,23 +130,17 @@ export class GoogleAuth {
   }
 
   /**
-   * Check if credentials are configured
-   */
-  private isConfigured(): boolean {
-    return this.CLIENT_ID !== 'YOUR_CLIENT_ID.apps.googleusercontent.com' && 
-           this.CLIENT_SECRET !== 'YOUR_CLIENT_SECRET';
-  }
-
-  /**
    * Sign in with Google Drive
    */
   async signIn(): Promise<boolean> {
     try {
       if (!this.isConfigured()) {
-        vscode.window.showErrorMessage(
-          'This extension requires OAuth credentials to be configured. Please contact the extension author or configure your own Google Cloud Project credentials. See README.md for details.'
-        );
-        return false;
+        this.logger.warn('OAuth credentials not configured');
+        const credentialsSet = await this.promptForCredentials();
+        
+        if (!credentialsSet) {
+          return false;
+        }
       }
 
       this.initializeOAuth2Client();

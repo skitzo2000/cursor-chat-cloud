@@ -61,6 +61,21 @@
           "type": "string",
           "default": "/apps/CcCloud",
           "description": "Path to the Google Drive folder for storing synced data (relative to Drive root)"
+        },
+        "cursorChatCloud.googleClientId": {
+          "type": "string",
+          "default": "",
+          "description": "Google OAuth Client ID (from your Google Cloud Project)"
+        },
+        "cursorChatCloud.googleClientSecret": {
+          "type": "string",
+          "default": "",
+          "description": "Google OAuth Client Secret (from your Google Cloud Project)"
+        },
+        "cursorChatCloud.oauthRedirectPort": {
+          "type": "number",
+          "default": 3000,
+          "description": "Port for OAuth redirect callback"
         }
       }
     },
@@ -72,6 +87,10 @@
       {
         "command": "cursorChatCloud.signOut",
         "title": "Cursor Chat Cloud: Sign out"
+      },
+      {
+        "command": "cursorChatCloud.configureCredentials",
+        "title": "Cursor Chat Cloud: Configure OAuth Credentials"
       },
       {
         "command": "cursorChatCloud.syncNow",

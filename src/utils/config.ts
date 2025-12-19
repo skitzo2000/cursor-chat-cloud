@@ -24,4 +24,24 @@ export class Config {
   static getDriveFolderPath(): string {
     return vscode.workspace.getConfiguration('cursorChatCloud').get('driveFolderPath', '/apps/CcCloud');
   }
+
+  static getGoogleClientId(): string {
+    return vscode.workspace.getConfiguration('cursorChatCloud').get('googleClientId', '');
+  }
+
+  static getGoogleClientSecret(): string {
+    return vscode.workspace.getConfiguration('cursorChatCloud').get('googleClientSecret', '');
+  }
+
+  static getOAuthRedirectPort(): number {
+    return vscode.workspace.getConfiguration('cursorChatCloud').get('oauthRedirectPort', 3000);
+  }
+
+  static async setGoogleClientId(clientId: string): Promise<void> {
+    await vscode.workspace.getConfiguration('cursorChatCloud').update('googleClientId', clientId, vscode.ConfigurationTarget.Global);
+  }
+
+  static async setGoogleClientSecret(clientSecret: string): Promise<void> {
+    await vscode.workspace.getConfiguration('cursorChatCloud').update('googleClientSecret', clientSecret, vscode.ConfigurationTarget.Global);
+  }
 }

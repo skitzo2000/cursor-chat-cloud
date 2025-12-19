@@ -35,10 +35,26 @@ export class Commands {
       vscode.commands.registerCommand('cursorChatCloud.signOut', () => this.signOut()),
       vscode.commands.registerCommand('cursorChatCloud.syncNow', () => this.syncNow()),
       vscode.commands.registerCommand('cursorChatCloud.openSettings', () => this.openSettings()),
-      vscode.commands.registerCommand('cursorChatCloud.viewStatus', () => this.viewStatus())
+      vscode.commands.registerCommand('cursorChatCloud.viewStatus', () => this.viewStatus()),
+      vscode.commands.registerCommand('cursorChatCloud.configureCredentials', () => this.configureCredentials())
     );
 
     this.logger.info('Commands registered');
+  }
+
+  /**
+   * Configure OAuth credentials command
+   */
+  private async configureCredentials(): Promise<void> {
+    try {
+      this.logger.info('Executing configure credentials command');
+      
+      // This will trigger the credential setup flow
+      await this.googleAuth.signIn();
+    } catch (error) {
+      this.logger.error('Configure credentials command failed', error);
+      this.notifications.error('Failed to configure credentials', error);
+    }
   }
 
   /**

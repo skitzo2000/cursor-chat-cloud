@@ -19,7 +19,8 @@ Before using this extension, you need to:
 
 1. **Have Cursor IDE installed** on your machine
 2. **Have a Google/Gmail account** for cloud storage
-3. **Have VS Code or Cursor** version 1.80.0 or higher
+3. **Create a Google Cloud Project** with OAuth credentials (see setup guide below)
+4. **Have VS Code or Cursor** version 1.80.0 or higher
 
 ## 🚀 Installation
 
@@ -39,20 +40,60 @@ npm install
 npm run build
 ```
 
+## 🔧 Google Cloud Setup
+
+To use this extension, you need to create your own Google Cloud Project and OAuth credentials. This is required because Google Drive API access requires OAuth authentication.
+
+### Step 1: Create a Google Cloud Project
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project (or select an existing one)
+3. Enable the **Google Drive API**:
+   - Go to "APIs & Services" > "Library"
+   - Search for "Google Drive API"
+   - Click "Enable"
+
+### Step 2: Configure OAuth Consent Screen
+
+1. Go to "APIs & Services" > "OAuth consent screen"
+2. Choose "External" user type
+3. Fill in the required information:
+   - App name: "Cursor Chat Cloud" (or your preferred name)
+   - User support email: Your email
+   - Developer contact: Your email
+4. Add the following scope:
+   - `https://www.googleapis.com/auth/drive.file`
+5. Save and continue
+
+### Step 3: Create OAuth Credentials
+
+1. Go to "APIs & Services" > "Credentials"
+2. Click "Create Credentials" > "OAuth client ID"
+3. Choose "Web application"
+4. Add authorized redirect URI:
+   ```
+   http://localhost:3000/oauth2callback
+   ```
+   (You can change the port in extension settings if needed)
+5. Click "Create"
+6. **Copy the Client ID and Client Secret** - you'll need these for the extension
+
 ## 📖 Usage
 
 ### First Time Setup
 
-1. Install the extension (see Installation section above)
-2. Open VS Code/Cursor
-3. You'll see a notification to sign in
-4. Click "Sign In" or use Command Palette:
-   - Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac)
-   - Type: `Cursor Chat Cloud: Sign in with Google Drive`
+1. Complete the Google Cloud Setup steps above
+2. Install the extension
+3. Open VS Code/Cursor
+4. When prompted (or use Command Palette: `Cursor Chat Cloud: Sign in with Google Drive`):
+   - Enter your Google OAuth Client ID
+   - Enter your Google OAuth Client Secret
 5. Browser will open for Google OAuth
 6. Sign in with your Gmail/Google account
 7. Grant permissions to access Google Drive
 8. Return to VS Code - sync will start automatically!
+
+**Note:** Your OAuth credentials (Client ID and Secret) are stored securely in VS Code settings and identify your application to Google. Your actual Google account credentials are never stored - only OAuth tokens managed by Google.
 
 The extension will create a folder in your Google Drive at `/apps/CcCloud` (configurable in settings) to store your synced workspace data.
 
@@ -89,6 +130,9 @@ Access settings via `File > Preferences > Settings` and search for "Cursor Chat 
 | `cursorChatCloud.syncInterval` | Sync interval in minutes | `5` |
 | `cursorChatCloud.customWorkspacePath` | Custom path to Cursor workspaces | `""` |
 | `cursorChatCloud.driveFolderPath` | Path to Google Drive folder for sync data | `/apps/CcCloud` |
+| `cursorChatCloud.googleClientId` | Google OAuth Client ID | `""` |
+| `cursorChatCloud.googleClientSecret` | Google OAuth Client Secret | `""` |
+| `cursorChatCloud.oauthRedirectPort` | OAuth redirect callback port | `3000` |
 | `cursorChatCloud.showNotifications` | Show sync notifications | `true` |
 | `cursorChatCloud.logLevel` | Logging level (debug/info/warn/error) | `info` |
 
@@ -104,7 +148,8 @@ The extension automatically detects Cursor workspace locations:
 
 Access all commands via Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`):
 
-- `Cursor Chat Cloud: Sign in with Google Drive` - Authenticate with Google
+- `Cursor Chat Cloud: Sign in with Google Drive` - Authenticate with Google (prompts for credentials if not configured)
+- `Cursor Chat Cloud: Configure OAuth Credentials` - Set up or update your OAuth credentials
 - `Cursor Chat Cloud: Sign out` - Sign out and stop syncing
 - `Cursor Chat Cloud: Sync Now` - Manually trigger sync
 - `Cursor Chat Cloud: Open Settings` - Open extension settings
@@ -131,9 +176,12 @@ The extension shows its status in the status bar:
 ### Issue: "Authentication failed"
 
 **Solution**:
-- Make sure you're using a valid Gmail/Google account
+- Verify your OAuth Client ID and Client Secret are correct
+- Make sure you completed the Google Cloud setup steps
+- Check that the OAuth redirect URI is configured correctly in Google Cloud Console
+- Ensure you're using a valid Gmail/Google account
 - Check that you granted permissions when signing in
-- Try signing out and signing in again
+- Try reconfiguring credentials: `Cursor Chat Cloud: Configure OAuth Credentials`
 - If the issue persists, check the extension logs for details
 
 ### Issue: "Sync failed: quota exceeded"
@@ -160,10 +208,13 @@ The extension shows its status in the status bar:
 ## 🔐 Privacy & Security
 
 - **Your Data**: All workspace data stays in YOUR Google Drive account
-- **Credentials**: OAuth tokens stored securely using VS Code SecretStorage API
+- **Your Credentials**: Your OAuth Client ID and Secret are stored locally in VS Code settings and identify YOUR application to Google
+- **OAuth Tokens**: Access tokens are stored securely using VS Code SecretStorage API
 - **Minimal Permissions**: Only requests `drive.file` scope (access only to files created by this app)
 - **No Telemetry**: This extension does not collect or send any usage data
 - **Open Source**: Full source code available for inspection
+
+**Important**: Keep your OAuth Client Secret private. Do not share it publicly or commit it to version control.
 
 ## 🤝 Contributing
 
@@ -189,37 +240,6 @@ npm run watch
 ### Testing
 
 Press `F5` in VS Code to launch the extension in a new Extension Development Host window.
-
-### For Extension Publishers
-
-If you're publishing this extension, you need to provide OAuth credentials:
-
-1. **Create a Google Cloud Project**:
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project
-   - Enable the **Google Drive API**
-
-2. **Configure OAuth Consent Screen**:
-   - Go to "APIs & Services" > "OAuth consent screen"
-   - Choose "External" user type
-   - Add scope: `https://www.googleapis.com/auth/drive.file`
-
-3. **Create OAuth Credentials**:
-   - Go to "APIs & Services" > "Credentials"
-   - Create "OAuth client ID" > "Web application"
-   - Add redirect URI: `http://localhost:3000/oauth2callback`
-   - Copy the Client ID and Client Secret
-
-4. **Configure the Extension**:
-   - Set environment variables before building:
-     ```bash
-     export GOOGLE_CLIENT_ID="your-client-id.apps.googleusercontent.com"
-     export GOOGLE_CLIENT_SECRET="your-client-secret"
-     npm run build
-     ```
-   - Or update `src/auth/googleAuth.ts` directly (not recommended for version control)
-
-**Security Note**: Never commit OAuth credentials to version control.
 
 ## 📝 License
 
