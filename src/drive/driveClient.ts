@@ -41,11 +41,27 @@ export class DriveClient {
 
     try {
       // Get the configured folder path and normalize it
-      const folderPath = Config.getDriveFolderPath();
-      const pathParts = folderPath.split('/').filter(part => part.length > 0);
+      let folderPath = Config.getDriveFolderPath();
+      
+      // Trim whitespace and validate
+      folderPath = folderPath.trim();
+      if (!folderPath || folderPath.length === 0) {
+        throw new Error('Invalid folder path configuration: path cannot be empty');
+      }
+      
+      // Split and filter out empty segments
+      const pathParts = folderPath.split('/').filter(part => part.trim().length > 0);
       
       if (pathParts.length === 0) {
-        throw new Error('Invalid folder path configuration');
+        throw new Error('Invalid folder path configuration: no valid path segments');
+      }
+
+      // Validate folder names (no special characters that could cause issues)
+      const invalidChars = /[<>:"|?*\\]/;
+      for (const part of pathParts) {
+        if (invalidChars.test(part)) {
+          throw new Error(`Invalid folder name "${part}": contains invalid characters`);
+        }
       }
 
       this.logger.info(`Ensuring folder path: ${folderPath}`);
@@ -75,9 +91,13 @@ export class DriveClient {
     }
 
     try {
+      // Escape single quotes in folder name and parent ID to prevent query injection
+      const escapedFolderName = folderName.replace(/'/g, "\\'");
+      const escapedParentId = parentId.replace(/'/g, "\\'");
+      
       // Search for existing folder
       const response = await this.drive.files.list({
-        q: `name='${folderName}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        q: `name='${escapedFolderName}' and '${escapedParentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
         fields: 'files(id, name)',
         spaces: 'drive'
       });
@@ -118,9 +138,12 @@ export class DriveClient {
     }
 
     try {
+      // Escape single quotes to prevent query injection
+      const escapedParentFolderId = parentFolderId.replace(/'/g, "\\'");
+      
       // Search for existing folder
       const response = await this.drive.files.list({
-        q: `name='workspaces' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        q: `name='workspaces' and '${escapedParentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
         fields: 'files(id, name)',
         spaces: 'drive'
       });
@@ -243,8 +266,11 @@ export class DriveClient {
     }
 
     try {
+      // Escape single quotes to prevent query injection
+      const escapedFolderId = folderId.replace(/'/g, "\\'");
+      
       const response = await this.drive.files.list({
-        q: `'${folderId}' in parents and trashed=false`,
+        q: `'${escapedFolderId}' in parents and trashed=false`,
         fields: 'files(id, name, modifiedTime, size, mimeType)',
         spaces: 'drive',
         pageSize: 1000
@@ -306,8 +332,12 @@ export class DriveClient {
     }
 
     try {
+      // Escape single quotes to prevent query injection
+      const escapedFileName = fileName.replace(/'/g, "\\'");
+      const escapedParentFolderId = parentFolderId.replace(/'/g, "\\'");
+      
       const response = await this.drive.files.list({
-        q: `name='${fileName}' and '${parentFolderId}' in parents and trashed=false`,
+        q: `name='${escapedFileName}' and '${escapedParentFolderId}' in parents and trashed=false`,
         fields: 'files(id, name, modifiedTime, size)',
         spaces: 'drive'
       });
