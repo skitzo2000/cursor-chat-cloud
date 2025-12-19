@@ -1,0 +1,105 @@
+{
+  "name": "cursor-chat-cloud",
+  "displayName": "Cursor Chat Cloud",
+  "description": "Automatically sync Cursor chat workspaces across machines using Google Drive",
+  "version": "0.1.0",
+  "publisher": "cursor-chat-cloud",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "cursor",
+    "chat",
+    "sync",
+    "cloud",
+    "google-drive",
+    "workspace"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Cursor Chat Cloud",
+      "properties": {
+        "cursorChatCloud.autoSync": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically sync workspaces"
+        },
+        "cursorChatCloud.syncInterval": {
+          "type": "number",
+          "default": 5,
+          "description": "Sync interval in minutes"
+        },
+        "cursorChatCloud.customWorkspacePath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to Cursor workspaces"
+        },
+        "cursorChatCloud.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show sync notifications"
+        },
+        "cursorChatCloud.logLevel": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "Logging level"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "cursorChatCloud.signIn",
+        "title": "Cursor Chat Cloud: Sign in with Google Drive"
+      },
+      {
+        "command": "cursorChatCloud.signOut",
+        "title": "Cursor Chat Cloud: Sign out"
+      },
+      {
+        "command": "cursorChatCloud.syncNow",
+        "title": "Cursor Chat Cloud: Sync Now"
+      },
+      {
+        "command": "cursorChatCloud.openSettings",
+        "title": "Cursor Chat Cloud: Open Settings"
+      },
+      {
+        "command": "cursorChatCloud.viewStatus",
+        "title": "Cursor Chat Cloud: View Sync Status"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "compile": "tsc -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.80.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "esbuild": "^0.19.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "googleapis": "^128.0.0"
+  }
+}
