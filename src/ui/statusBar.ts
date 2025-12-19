@@ -54,7 +54,6 @@ export class StatusBar {
    */
   private updateTooltip(): void {
     if (this.lastSyncTime > 0) {
-      const lastSyncDate = new Date(this.lastSyncTime);
       const timeAgo = this.getTimeAgo(this.lastSyncTime);
       this.statusBarItem.tooltip = `Cursor Chat Cloud\nLast sync: ${timeAgo}\nClick to sync now`;
     } else {

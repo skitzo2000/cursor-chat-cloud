@@ -1,7 +1,5 @@
-import * as vscode from 'vscode';
 import * as chokidar from 'chokidar';
 import { Logger } from '../utils/logger';
-import { Config } from '../utils/config';
 
 export type FileChangeHandler = (filePath: string) => void;
 
@@ -28,7 +26,7 @@ export class FileWatcher {
     this.changeHandler = handler;
 
     this.watcher = chokidar.watch(watchPath, {
-      ignored: /(^|[\/\\])\../, // Ignore dotfiles
+      ignored: /(^|[/\\])\../, // Ignore dotfiles
       persistent: true,
       ignoreInitial: true,
       awaitWriteFinish: {

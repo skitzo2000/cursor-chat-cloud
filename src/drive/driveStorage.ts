@@ -55,7 +55,7 @@ export class DriveStorage {
         localPath,
         fileName,
         this.workspacesFolderId,
-        existingFile?.id
+        existingFile?.id || undefined
       );
 
       this.logger.info(`Uploaded workspace file: ${relativePath}`);
@@ -94,7 +94,7 @@ export class DriveStorage {
         id: file.id!,
         name: file.name!,
         modifiedTime: file.modifiedTime!,
-        size: file.size
+        size: file.size || undefined
       }));
     } catch (error) {
       this.logger.error('Error listing workspace files', error);

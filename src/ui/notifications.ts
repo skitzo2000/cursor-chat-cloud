@@ -27,8 +27,8 @@ export class Notifications {
   /**
    * Show error message
    */
-  error(message: string, error?: any): void {
-    const errorMsg = error ? `${message}: ${error.message || error}` : message;
+  error(message: string, error?: unknown): void {
+    const errorMsg = error ? `${message}: ${(error as Error).message || error}` : message;
     this.logger.error(`Notification: ${errorMsg}`);
     vscode.window.showErrorMessage(`Cursor Chat Cloud: ${errorMsg}`);
   }

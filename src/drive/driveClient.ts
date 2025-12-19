@@ -183,7 +183,7 @@ export class DriveClient {
       const dest = fs.createWriteStream(destPath);
       
       await new Promise<void>((resolve, reject) => {
-        (response.data as any as Readable)
+        (response.data as unknown as Readable)
           .pipe(dest)
           .on('finish', resolve)
           .on('error', reject);

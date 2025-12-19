@@ -202,7 +202,7 @@ export class SyncEngine {
   private async syncFile(
     filePath: string,
     workspaceFolder: string,
-    cloudFileMap: Map<string, any>,
+    cloudFileMap: Map<string, { id: string; name: string; modifiedTime: string; size?: string }>,
     conflicts: ConflictInfo[]
   ): Promise<void> {
     const fileName = path.basename(filePath);
