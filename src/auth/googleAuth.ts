@@ -11,11 +11,14 @@ export class GoogleAuth {
   private tokenManager: TokenManager;
   private oauth2Client: OAuth2Client | null = null;
   
-  // These are placeholder values - users need to create their own OAuth credentials
-  private readonly CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
-  private readonly CLIENT_SECRET = 'YOUR_CLIENT_SECRET';
-  private readonly REDIRECT_URI = 'http://localhost:3000/oauth2callback';
+  // OAuth Configuration - IMPORTANT: Replace these with your own credentials
+  // See README.md for instructions on setting up Google Cloud OAuth
+  private readonly CLIENT_ID = process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID.apps.googleusercontent.com';
+  private readonly CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || 'YOUR_CLIENT_SECRET';
+  private readonly REDIRECT_PORT = parseInt(process.env.OAUTH_REDIRECT_PORT || '3000', 10);
+  private readonly REDIRECT_URI = `http://localhost:${this.REDIRECT_PORT}/oauth2callback`;
   private readonly SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+  private readonly OAUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
   constructor(tokenManager: TokenManager, logger: Logger) {
     this.tokenManager = tokenManager;
@@ -134,15 +137,28 @@ export class GoogleAuth {
         }
       });
 
-      server.listen(3000, () => {
-        this.logger.info('Callback server started on port 3000');
+      server.on('error', (error: NodeJS.ErrnoException) => {
+        if (error.code === 'EADDRINUSE') {
+          this.logger.error(`Port ${this.REDIRECT_PORT} is already in use`);
+          vscode.window.showErrorMessage(
+            `Cannot start OAuth server: Port ${this.REDIRECT_PORT} is already in use. Please close any applications using this port and try again.`
+          );
+        } else {
+          this.logger.error('Callback server error', error);
+        }
+        server.close();
+        resolve(null);
       });
 
-      // Timeout after 5 minutes
+      server.listen(this.REDIRECT_PORT, () => {
+        this.logger.info(`Callback server started on port ${this.REDIRECT_PORT}`);
+      });
+
+      // Timeout after configured time
       setTimeout(() => {
         server.close();
         resolve(null);
-      }, 5 * 60 * 1000);
+      }, this.OAUTH_TIMEOUT_MS);
     });
   }
 

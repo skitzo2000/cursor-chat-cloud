@@ -78,6 +78,24 @@ This extension requires you to set up your own Google Cloud project for security
 
 ### Step 4: Update Extension Configuration
 
+You have two options to configure the OAuth credentials:
+
+#### Option A: Environment Variables (Recommended for development)
+
+Set these environment variables before building:
+```bash
+export GOOGLE_CLIENT_ID="your-client-id.apps.googleusercontent.com"
+export GOOGLE_CLIENT_SECRET="your-client-secret"
+export OAUTH_REDIRECT_PORT="3000"  # Optional, defaults to 3000
+```
+
+Then build the extension:
+```bash
+npm run build
+```
+
+#### Option B: Update Source Code (For packaged distribution)
+
 1. Open the extension source code
 2. Navigate to `src/auth/googleAuth.ts`
 3. Replace the placeholder values:
@@ -89,6 +107,8 @@ This extension requires you to set up your own Google Cloud project for security
    ```bash
    npm run build
    ```
+
+**Security Note**: Never commit your actual credentials to version control. Use environment variables for development and secure secret management for production deployments.
 
 ## 📖 Usage
 

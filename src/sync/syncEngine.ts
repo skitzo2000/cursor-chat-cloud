@@ -25,6 +25,9 @@ export class SyncEngine {
   private lastSyncTime: number = 0;
   private syncInterval: NodeJS.Timeout | null = null;
   private isSyncing: boolean = false;
+  
+  // Sync tolerance for timestamp comparison (in milliseconds)
+  private readonly SYNC_TOLERANCE_MS = 1000; // 1 second
 
   constructor(
     driveStorage: DriveStorage,
@@ -221,8 +224,8 @@ export class SyncEngine {
       // Remove from map as we're handling it
       cloudFileMap.delete(fileName);
 
-      if (Math.abs(cloudModified - localModified) < 1000) {
-        // Files are in sync (within 1 second tolerance)
+      if (Math.abs(cloudModified - localModified) < this.SYNC_TOLERANCE_MS) {
+        // Files are in sync (within tolerance)
         this.logger.debug(`File in sync: ${fileName}`);
         return;
       }
