@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { Logger } from '../utils/logger';
 
 const TOKEN_KEY = 'cursorChatCloud.tokens';
+const CLIENT_SECRET_KEY = 'cursorChatCloud.clientSecret';
 
 export interface TokenData {
   access_token: string;
@@ -18,6 +19,52 @@ export class TokenManager {
   constructor(context: vscode.ExtensionContext, logger: Logger) {
     this.context = context;
     this.logger = logger;
+  }
+
+  /**
+   * Store OAuth Client Secret securely
+   */
+  async storeClientSecret(clientSecret: string): Promise<void> {
+    try {
+      await this.context.secrets.store(CLIENT_SECRET_KEY, clientSecret);
+      this.logger.info('Client Secret stored securely');
+    } catch (error) {
+      this.logger.error('Error storing Client Secret', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieve OAuth Client Secret
+   */
+  async getClientSecret(): Promise<string | null> {
+    try {
+      const clientSecret = await this.context.secrets.get(CLIENT_SECRET_KEY);
+      
+      if (!clientSecret) {
+        this.logger.debug('No Client Secret found');
+        return null;
+      }
+
+      this.logger.debug('Client Secret retrieved successfully');
+      return clientSecret;
+    } catch (error) {
+      this.logger.error('Error retrieving Client Secret', error);
+      return null;
+    }
+  }
+
+  /**
+   * Delete OAuth Client Secret
+   */
+  async deleteClientSecret(): Promise<void> {
+    try {
+      await this.context.secrets.delete(CLIENT_SECRET_KEY);
+      this.logger.info('Client Secret deleted successfully');
+    } catch (error) {
+      this.logger.error('Error deleting Client Secret', error);
+      throw error;
+    }
   }
 
   /**

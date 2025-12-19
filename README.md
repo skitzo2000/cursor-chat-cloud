@@ -131,10 +131,11 @@ Access settings via `File > Preferences > Settings` and search for "Cursor Chat 
 | `cursorChatCloud.customWorkspacePath` | Custom path to Cursor workspaces | `""` |
 | `cursorChatCloud.driveFolderPath` | Path to Google Drive folder for sync data | `/apps/CcCloud` |
 | `cursorChatCloud.googleClientId` | Google OAuth Client ID | `""` |
-| `cursorChatCloud.googleClientSecret` | Google OAuth Client Secret | `""` |
 | `cursorChatCloud.oauthRedirectPort` | OAuth redirect callback port | `3000` |
 | `cursorChatCloud.showNotifications` | Show sync notifications | `true` |
 | `cursorChatCloud.logLevel` | Logging level (debug/info/warn/error) | `info` |
+
+**Note:** The OAuth Client Secret is stored securely using VS Code's SecretStorage API and is not visible in settings.
 
 ### Default Workspace Paths
 

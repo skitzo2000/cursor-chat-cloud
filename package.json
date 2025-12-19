@@ -65,12 +65,7 @@
         "cursorChatCloud.googleClientId": {
           "type": "string",
           "default": "",
-          "description": "Google OAuth Client ID (from your Google Cloud Project)"
-        },
-        "cursorChatCloud.googleClientSecret": {
-          "type": "string",
-          "default": "",
-          "description": "Google OAuth Client Secret (from your Google Cloud Project)"
+          "markdownDescription": "Google OAuth Client ID from your Google Cloud Project. **Never share this publicly.** See README for setup instructions."
         },
         "cursorChatCloud.oauthRedirectPort": {
           "type": "number",

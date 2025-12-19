@@ -27,9 +27,9 @@ export class GoogleAuth {
   /**
    * Load OAuth credentials from configuration
    */
-  private loadCredentials(): void {
+  private async loadCredentials(): Promise<void> {
     this.CLIENT_ID = Config.getGoogleClientId();
-    this.CLIENT_SECRET = Config.getGoogleClientSecret();
+    this.CLIENT_SECRET = await this.tokenManager.getClientSecret() || '';
     this.REDIRECT_PORT = Config.getOAuthRedirectPort();
     this.REDIRECT_URI = `http://localhost:${this.REDIRECT_PORT}/oauth2callback`;
   }
@@ -37,8 +37,8 @@ export class GoogleAuth {
   /**
    * Check if credentials are configured
    */
-  private isConfigured(): boolean {
-    this.loadCredentials(); // Reload in case settings changed
+  private async isConfigured(): Promise<boolean> {
+    await this.loadCredentials(); // Reload in case settings changed
     return this.CLIENT_ID.length > 0 && this.CLIENT_SECRET.length > 0;
   }
 
@@ -104,10 +104,10 @@ export class GoogleAuth {
 
     // Save credentials to settings
     await Config.setGoogleClientId(clientId.trim());
-    await Config.setGoogleClientSecret(clientSecret.trim());
+    await this.tokenManager.storeClientSecret(clientSecret.trim());
 
     // Reload credentials
-    this.loadCredentials();
+    await this.loadCredentials();
 
     vscode.window.showInformationMessage(
       'OAuth credentials saved successfully! Make sure your OAuth redirect URI is set to: ' + this.REDIRECT_URI
@@ -134,7 +134,7 @@ export class GoogleAuth {
    */
   async signIn(): Promise<boolean> {
     try {
-      if (!this.isConfigured()) {
+      if (!(await this.isConfigured())) {
         this.logger.warn('OAuth credentials not configured');
         const credentialsSet = await this.promptForCredentials();
         
